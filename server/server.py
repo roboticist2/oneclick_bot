@@ -10,8 +10,6 @@ from pynput import keyboard
 
 model = load_model("keras_model.h5", compile=False)
 shared_image = None
-keyValue = -1
-keyValue2 = "0"
 server_socket = socket.socket()
 print("Socket initializing...")
 
@@ -33,22 +31,17 @@ def on_press(key):
 
     global go_flag, left_flag, right_flag, back_flag, exit_flag
     current_pressed.add(key)
-    # print('Key %s pressed' % current_pressed)
     try:
         if key == keyboard.Key.esc:
             print('Exit is pressed')
             exit_flag=1
         if key.char == 'i':
-            # print('go is pressed')
             go_flag=1
         if key.char == 'j':
-            # print('left is pressed')
             left_flag=1
         if key.char == 'l':
-            # print('right is pressed')
             right_flag=1
         if key.char == 'k':
-            # print('right is pressed')
             back_flag=1
 
     except:
@@ -57,24 +50,16 @@ def on_press(key):
 # 키보드 뗄 때 실행
 def on_release(key):
     global go_flag, left_flag, right_flag, back_flag, exit_flag
-    # print('Key %s released' %key)
-    # if key == keyboard.Key.esc:
-    #     return False
     if key in current_pressed:
         current_pressed.remove(key)
-
     try:
         if key.char == 'i':
-            # print('go is released')
             go_flag=0
         if key.char == 'j':
-            # print('left is released')
             left_flag=0
         if key.char == 'l':
-            # print('right is released')
             right_flag=0
         if key.char == 'k':
-            # print('right is pressed')
             back_flag=0
     except:
         pass
