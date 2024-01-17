@@ -20,7 +20,7 @@ directory = 'image'
 if not os.path.exists(directory):
     os.makedirs(directory)
 
-#%% keyboard flags
+# keyboard flags
 now = 0
 go_flag = 0
 left_flag = 0
@@ -30,10 +30,12 @@ save_flag = 0
 
 current_pressed = set()
 
+# 키보드 값 인식
 def getkeyboard():
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 
+# 키보드 눌릴 때 실행
 def on_press(key):
     global go_flag, left_flag, right_flag, back_flag, save_flag
     current_pressed.add(key)
@@ -75,8 +77,11 @@ def on_release(key):
     except:
         pass
 
+# 서버 소켓 활성화, 클라이언트 접속 대기
+# thread 활성화
 def start_server():
     global shared_image
+    global image_for_save
 
     HOST = '0.0.0.0'
     PORT = 8000
@@ -91,6 +96,7 @@ def start_server():
         connection, addr = server_socket.accept()
         print('Connection established with', addr)
         video_stream = connection.makefile('rb')
+
         client_thread = threading.Thread(target=handle_client_connection, args=(video_stream, addr))
         client_thread.start()
 
@@ -100,6 +106,7 @@ def start_server():
         getkey_thread = threading.Thread(target=getkeyboard)
         getkey_thread.start()
 
+# 클라이언트 연결 후 수행할 동작
 def handle_client_connection(video_stream, addr):
     global shared_image
     global image_for_save
@@ -107,12 +114,15 @@ def handle_client_connection(video_stream, addr):
     save_cnt = 0
     save_time = 0
     save_time_flag = 0
-    save_time_coef = 2.0
+    save_time_coef = 1.0
+
     try:
         print("Connection established ")
         start = time.time()
         while True:
             image_len_data = video_stream.read(4)
+
+            # 이미지 데이터가 잘못 들어오면 중단
             if not image_len_data:
                 print('Image loading fail')
                 break
@@ -134,21 +144,24 @@ def handle_client_connection(video_stream, addr):
             frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             frame = cv2.rotate(frame, cv2.ROTATE_180)
 
+            # 이미지 크기 조정
             frame = cv2.resize(frame, (224, 224), interpolation=cv2.INTER_AREA)
             image_for_save = frame
 
+            # 시간 저장
             Cur_time = round(time.time() - start, 2)
             now = datetime.datetime.now()
-
             time_string = now.strftime("%H%M%S_%f")[:-3]  # 시, 분, 초, 밀리초
 
+            # 이미지 저장 간격 조절
+            # 최대 0.1s(10fps), save_time_coef로 조절
             if (Cur_time - save_time > 0.1*save_time_coef) :
                 save_time_flag = 1
 
             if save_time_flag == 1 and save_flag == 1:
                 #file_name = f"{directory}/{time_string}_{go_flag}{left_flag}{right_flag}{back_flag}.jpg"
                 file_name = f"{directory}/{go_flag}{left_flag}{right_flag}{back_flag}_{time_string}.jpg"
-                cv2.imwrite(file_name, frame)
+                cv2.imwrite(file_name, image_for_save)
                 save_cnt += 1
                 print(f"Image saved as {file_name}, time : {Cur_time}, cnt : {save_cnt}")
                 save_time_flag = 0 # 저장 플래그 초기화
@@ -156,22 +169,24 @@ def handle_client_connection(video_stream, addr):
             else :
                 pass
 
-            # 프레임 출력
+            # 실시간 프레임 출력
+            frame = cv2.resize(frame, (500, 500), interpolation=cv2.INTER_AREA)
             cv2.imshow('Video', frame)
+
             image = cv2.resize(frame, (64, 64))
 
-            # half_height = image.shape[0] // 2  # 이미지 아래 반쪽의 높이
-            # bottom_half = image[half_height:, :, :]
-            # image = cv2.resize(bottom_half, (64, 64))
 
-            split_ratio = 0.4 #위쪽 기준
             height = image.shape[0]  # 이미지의 높이
+            split_ratio = 0.4  # 위쪽 기준
             split_height = int(height * split_ratio)  # 원하는 비율에 따라 분할할 높이 계산
+            split_ratio2 = 1.0  # 아래쪽 기준
+            split_height2 = int(height * split_ratio2)
 
             #upper_part = image[:split_height, :, :]  # 위쪽 부분 추출
-            lower_part = image[split_height:, :, :]  # 아래쪽 부분 추출
+            lower_part = image[split_height:split_height2, :, :]  # 아래쪽 부분 추출
             image = cv2.resize(lower_part, (64, 64))
 
+            # 학습 전 이미지 전처리
             image = np.asarray(image, dtype=np.float32).reshape(1, 64, 64, 3) #(1,224,224,3)
             image = (image / 127.5) - 1
 
@@ -200,10 +215,11 @@ def send_dirct(connection):
     while True:
         try:
             if shared_image is None:
-                None
+                pass
             else:
+                pass
                 prediction = model.predict(shared_image, verbose=0)
-                print(prediction)
+                #print(prediction)
                 prediction = np.argmax((prediction),axis=1)
 
             if manual == 0 :
