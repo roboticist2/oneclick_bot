@@ -1,5 +1,5 @@
-import io
-from keras.models import load_model
+from tensorflow import keras
+from tensorflow.keras.models import load_model
 import socket
 import struct
 import time
@@ -16,7 +16,7 @@ image_for_save = None
 server_socket = socket.socket()
 print("Socket initializing...")
 
-directory = 'image'
+directory = 'image_240118'
 if not os.path.exists(directory):
     os.makedirs(directory)
 
@@ -175,11 +175,10 @@ def handle_client_connection(video_stream, addr):
 
             image = cv2.resize(frame, (64, 64))
 
-
             height = image.shape[0]  # 이미지의 높이
-            split_ratio = 0.4  # 위쪽 기준
-            split_height = int(height * split_ratio)  # 원하는 비율에 따라 분할할 높이 계산
-            split_ratio2 = 1.0  # 아래쪽 기준
+            split_ratio1 = 0.4  # 위쪽 기준
+            split_height = int(height * split_ratio1)  # 원하는 비율에 따라 분할할 높이 계산
+            split_ratio2 = 0.9  # 아래쪽 기준
             split_height2 = int(height * split_ratio2)
 
             #upper_part = image[:split_height, :, :]  # 위쪽 부분 추출
@@ -210,7 +209,7 @@ def send_dirct(connection):
     global go_flag,left_flag,right_flag,back_flag
     prediction = 3
     # 0 : auto driving, 1: manual driving
-    manual = 0
+    manual = 1
 
     while True:
         try:
